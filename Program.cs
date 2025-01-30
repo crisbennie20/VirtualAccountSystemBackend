@@ -1,3 +1,9 @@
+using Serilog.Events;
+using Serilog;
+using VirtualAccountSystemBackend.Service;
+using Microsoft.EntityFrameworkCore;
+using VirtualAccountSystemBackend.Model;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,14 +13,39 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+var logFilePath = builder.Configuration.GetValue<string>("LogFile");
+
+builder.Logging.ClearProviders().AddSerilog(new LoggerConfiguration()
+                    .MinimumLevel.Debug()
+                    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                    .Enrich.FromLogContext()
+                    .WriteTo.File(logFilePath)
+                    .CreateLogger());
+
+builder.Services.AddScoped<VirtualAccountService>();
+builder.Services.AddScoped<VirtualAccountTransactionService>();
+
+builder.Services.AddDbContext<VASContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
+//{
+// app.UseSwagger();
+// app.UseSwaggerUI();
+//}
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<VASContext>();
+    db.Database.Migrate();
 }
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
