@@ -12,7 +12,13 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
+});
 
 var logFilePath = builder.Configuration.GetValue<string>("LogFile");
 
@@ -43,7 +49,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<VASContext>();
     db.Database.Migrate();
 }
-
+app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 
